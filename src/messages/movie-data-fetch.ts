@@ -11,8 +11,10 @@ export const movieDataFetch = eventType("meadow_api/movie-data.fetch", {
   schema: movieDataFetchSchema,
 });
 
-export type MovieData = {
-  title: string;
-  year: string;
-  plot: string | null;
-};
+export const movieDataSchema = z.object({
+  title: z.string(),
+  year: z.string(),
+  plot: z.string().nullable(),
+});
+
+export type MovieData = z.infer<typeof movieDataSchema>;

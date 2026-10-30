@@ -1,5 +1,6 @@
 import { inngest } from "../inngest/client.js";
 import { movieWatched } from "../messages/movie-watched.js";
+import { sendEmail } from "../providers/email/send-email.function.js";
 import { fetchMovieData } from "../providers/movie-data/fetch-movie-data.function.js";
 
 export const movieWatchedFn = inngest.createFunction(
@@ -10,6 +11,11 @@ export const movieWatchedFn = inngest.createFunction(
       data: { movie_title: event.data.movie_title },
     });
 
-    return { movie };
+    const sentEmail = await step.invoke("send-email", {
+      function: sendEmail,
+      data: { recipient_email: event.data.recipient_email, movie },
+    });
+
+    return { emailId: sentEmail.id };
   },
 );
