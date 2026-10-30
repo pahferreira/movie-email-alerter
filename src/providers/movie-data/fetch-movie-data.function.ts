@@ -3,6 +3,7 @@ import { inngest } from "../../inngest/client.js";
 import {
   movieDataFetch,
   movieDataFetchFailed,
+  movieDataFetchSchema,
 } from "../../messages/movie-data-fetch.js";
 import type { MovieDataProvider } from "./movie-data-provider.js";
 import { OmdbMovieDataProvider } from "./omdb.js";
@@ -19,7 +20,7 @@ export const fetchMovieData = inngest.createFunction(
       await step.sendEvent(
         "emit-fetch-failed",
         movieDataFetchFailed.create({
-          request: { movie_title: event.data.event.data.movie_title },
+          request: movieDataFetchSchema.parse(event.data.event.data),
           error: { name: error.name, message: error.message },
         }),
       );
