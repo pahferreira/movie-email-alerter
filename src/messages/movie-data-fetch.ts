@@ -18,3 +18,15 @@ export const movieDataSchema = z.object({
 });
 
 export type MovieData = z.infer<typeof movieDataSchema>;
+
+export const movieDataFetchFailedSchema = z.object({
+  request: movieDataFetchSchema,
+  error: z.object({ name: z.string(), message: z.string() }),
+});
+
+export type MovieDataFetchFailed = z.infer<typeof movieDataFetchFailedSchema>;
+
+export const movieDataFetchFailed = eventType(
+  "meadow_api/movie-data.fetch-failed",
+  { schema: movieDataFetchFailedSchema },
+);
