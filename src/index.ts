@@ -1,28 +1,17 @@
 import Fastify from "fastify";
-import { Inngest } from "inngest";
 import inngestFastify from "inngest/fastify";
-
-const inngest = new Inngest({ id: "movie-email-alerter", isDev: true });
-
-const helloWorld = inngest.createFunction(
-  { id: "hello-world", triggers: [{ event: "test/hello.world" }] },
-  async ({ event, step }) => {
-    await step.sleep("wait-a-moment", "1s");
-    return { message: `Hello ${event.data.name ?? "world"}!` };
-  },
-);
+import { config } from "./config.js";
+import { movieWatchedFn } from "./core/movie-watched.function.js";
+import { moviesRoutes } from "./http/movies.routes.js";
+import { inngest } from "./inngest/client.js";
+import { fetchMovieData } from "./providers/movie-data/fetch-movie-data.function.js";
 
 const app = Fastify({ logger: true });
 
-app.register(inngestFastify, { client: inngest, functions: [helloWorld] });
-
-app.get("/hello", async (request) => {
-  const { name } = request.query as { name?: string };
-  const { ids } = await inngest.send({
-    name: "test/hello.world",
-    data: { name },
-  });
-  return { eventIds: ids };
+app.register(inngestFastify, {
+  client: inngest,
+  functions: [movieWatchedFn, fetchMovieData],
 });
+app.register(moviesRoutes);
 
-await app.listen({ port: 3000 });
+await app.listen({ port: config.PORT });
