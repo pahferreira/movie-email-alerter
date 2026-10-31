@@ -11,12 +11,33 @@ function stubFetch(status: number, body: unknown = {}) {
   );
 }
 
+async function expectRetryable(promise: Promise<unknown>) {
+  const error = await promise.catch((e) => e);
+  expect(error).toBeInstanceOf(Error);
+  expect(error).not.toBeInstanceOf(NonRetriableError);
+}
+
 afterEach(() => {
   vi.unstubAllGlobals();
 });
 
 describe("OmdbMovieDataProvider", () => {
-  it("maps a found movie and turns Plot N/A into null", async () => {
+  it("maps a found movie", async () => {
+    stubFetch(200, {
+      Response: "True",
+      Title: "The Matrix",
+      Year: "1999",
+      Plot: "A hacker learns the truth about reality.",
+    });
+
+    await expect(provider.fetchByTitle("The Matrix")).resolves.toEqual({
+      title: "The Matrix",
+      year: "1999",
+      plot: "A hacker learns the truth about reality.",
+    });
+  });
+
+  it("turns Plot N/A into null", async () => {
     stubFetch(200, {
       Response: "True",
       Title: "The Matrix",
@@ -39,8 +60,8 @@ describe("OmdbMovieDataProvider", () => {
     );
   });
 
-  it("fails permanently on 401", async () => {
-    stubFetch(401);
+  it.each([401, 404])("fails permanently on %i", async (status) => {
+    stubFetch(status);
 
     await expect(provider.fetchByTitle("The Matrix")).rejects.toBeInstanceOf(
       NonRetriableError,
@@ -50,9 +71,7 @@ describe("OmdbMovieDataProvider", () => {
   it.each([500, 429])("fails retryably on %i", async (status) => {
     stubFetch(status);
 
-    const error = await provider.fetchByTitle("The Matrix").catch((e) => e);
-    expect(error).toBeInstanceOf(Error);
-    expect(error).not.toBeInstanceOf(NonRetriableError);
+    await expectRetryable(provider.fetchByTitle("The Matrix"));
   });
 
   it.each([
@@ -61,8 +80,6 @@ describe("OmdbMovieDataProvider", () => {
   ])("fails retryably on %s", async (_, rejection) => {
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(rejection));
 
-    const error = await provider.fetchByTitle("The Matrix").catch((e) => e);
-    expect(error).toBeInstanceOf(Error);
-    expect(error).not.toBeInstanceOf(NonRetriableError);
+    await expectRetryable(provider.fetchByTitle("The Matrix"));
   });
 });
