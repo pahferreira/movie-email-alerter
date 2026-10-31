@@ -5,6 +5,7 @@ import { movieDataSchema } from "./movie-data-fetch.js";
 export const emailSendSchema = z.object({
   recipient_email: z.email(),
   movie: movieDataSchema,
+  idempotency_key: z.string().optional(),
 });
 
 export type EmailSend = z.infer<typeof emailSendSchema>;

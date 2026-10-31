@@ -25,7 +25,11 @@ export const movieWatchedFn = inngest.createFunction(
 
     const sentEmail = await step.invoke("send-email", {
       function: sendEmail,
-      data: { recipient_email: event.data.recipient_email, movie },
+      data: {
+        recipient_email: event.data.recipient_email,
+        movie,
+        idempotency_key: `movie-watched/${event.id}`,
+      },
     });
 
     return { emailId: sentEmail.id };

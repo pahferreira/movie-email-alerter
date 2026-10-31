@@ -33,10 +33,13 @@ export const sendEmail = inngest.createFunction(
   },
   async ({ event, step }) => {
     return step.run("resend-send", () =>
-      provider.send({
-        to: event.data.recipient_email,
-        ...renderMovieEmail(event.data.movie),
-      }),
+      provider.send(
+        {
+          to: event.data.recipient_email,
+          ...renderMovieEmail(event.data.movie),
+        },
+        event.data.idempotency_key ?? event.id,
+      ),
     );
   },
 );

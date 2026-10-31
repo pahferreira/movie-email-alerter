@@ -8,5 +8,5 @@ export type Email = {
 export type SentEmail = { id: string };
 
 export interface EmailProvider {
-  send(email: Email): Promise<SentEmail>;
+  send(email: Email, idempotencyKey?: string): Promise<SentEmail>;
 }

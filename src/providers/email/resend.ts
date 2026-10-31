@@ -12,20 +12,25 @@ export class ResendEmailProvider implements EmailProvider {
     this.client = new Resend(apiKey);
   }
 
-  async send(email: Email): Promise<SentEmail> {
-    const { data, error } = await this.client.emails.send({
-      from: this.from,
-      to: email.to,
-      subject: email.subject,
-      html: email.html,
-      text: email.text,
-    });
+  async send(email: Email, idempotencyKey?: string): Promise<SentEmail> {
+    const { data, error } = await this.client.emails.send(
+      {
+        from: this.from,
+        to: email.to,
+        subject: email.subject,
+        html: email.html,
+        text: email.text,
+      },
+      { idempotencyKey },
+    );
 
     if (error) {
       const status = error.statusCode;
       const message = `Resend send failed (${status ?? "unknown status"}): ${error.name}: ${error.message}`;
-      // 4xx other than 429 (bad key, unverified sender, invalid recipient) won't fix itself.
-      if (status !== null && status >= 400 && status < 500 && status !== 429) {
+      const retryable =
+        status === 429 || error.name === "concurrent_idempotent_requests";
+      // Other 4xx (bad key, unverified sender, invalid recipient, key reused with a different payload) won't fix itself.
+      if (status !== null && status >= 400 && status < 500 && !retryable) {
         throw new NonRetriableError(message);
       }
       throw new Error(message);
