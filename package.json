@@ -17,8 +17,9 @@
   "scripts": {
     "dev": "tsx watch --env-file=.env src/index.ts",
     "dev:inngest": "npx inngest-cli@latest dev -u http://localhost:3000/api/inngest --no-discovery",
-    "build": "tsc",
-    "start": "node dist/index.js"
+    "build": "tsc -p tsconfig.build.json",
+    "start": "node dist/index.js",
+    "test": "vitest run"
   },
   "dependencies": {
     "fastify": "^5.12.7",
@@ -29,6 +30,7 @@
   "devDependencies": {
     "@types/node": "^24.19.2",
     "tsx": "^4.23.15",
-    "typescript": "~5.9"
+    "typescript": "~5.9",
+    "vitest": "^5.0.5"
   }
 }
