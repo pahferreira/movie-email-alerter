@@ -1,8 +1,9 @@
 import { NonRetriableError } from "inngest";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { Email } from "./email-provider.js";
 import { ResendEmailProvider } from "./resend.js";
 
-const send = vi.fn();
+const send = vi.hoisted(() => vi.fn());
 
 vi.mock("resend", () => ({
   Resend: class {
@@ -11,14 +12,14 @@ vi.mock("resend", () => ({
 }));
 
 const provider = new ResendEmailProvider("test-key", "from@example.com");
-const email = {
+const email: Email = {
   to: "to@example.com",
   subject: "Plot summary: The Matrix (1999)",
   html: "<p>plot</p>",
   text: "plot",
 };
 
-function resendError(statusCode: number | null, name: string) {
+function stubSendError(statusCode: number | null, name: string) {
   send.mockResolvedValue({
     data: null,
     error: { statusCode, name, message: "boom" },
@@ -46,7 +47,7 @@ describe("ResendEmailProvider", () => {
     [422, "validation_error"],
     [409, "invalid_idempotent_request"],
   ])("fails permanently on %i %s", async (status, name) => {
-    resendError(status, name);
+    stubSendError(status, name);
 
     await expect(provider.send(email)).rejects.toBeInstanceOf(NonRetriableError);
   });
@@ -57,7 +58,7 @@ describe("ResendEmailProvider", () => {
     [null, "application_error"],
     [409, "concurrent_idempotent_requests"],
   ])("fails retryably on %s %s", async (status, name) => {
-    resendError(status, name);
+    stubSendError(status, name);
 
     const error = await provider.send(email).catch((e) => e);
     expect(error).toBeInstanceOf(Error);
