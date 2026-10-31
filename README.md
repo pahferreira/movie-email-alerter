@@ -188,10 +188,12 @@ done
 1. **Provider fallback chain**: adapters already exist; add a secondary `EmailProvider` and try it when the primary fails permanently.
 2. **429 handling with `RetryAfterError`**: honor the provider's `Retry-After` instead of default backoff; error classification is already in place.
 3. **Bounce/delivery webhooks**: instead of verifying an email exists up front (unreliable), ingest Resend `email.bounced` / `email.delivered` webhooks as Inngest events to track real delivery and suppress bad addresses.
-4. **Business-level dedupe / repeat viewings**: persist `(email, title, watched_at)`, normalize inputs (trim, lowercase, collapse whitespace), and opt into Inngest `idempotency` with a CEL key; a viewing ID in the key would still allow intentional re-watches.
+4. **Business-level dedupe / repeat viewings**: persist `(email, title, watched_at)`, normalize inputs beyond the current trimming (lowercase, collapse whitespace), and opt into Inngest `idempotency` with a CEL key; a viewing ID in the key would still allow intentional re-watches.
 5. **OMDb quota throttle + `year` disambiguation**: throttle against the free tier's 1,000 requests/day; accept an optional `year` in the event to pick the right film.
-6. **Function-flow tests with `@inngest/test`**: cover the orchestration (invoke chain, `onFailure` emitting `*-failed` events).
-7. **DLQ consumer**: a function listening to `*-failed` events that stores and/or alerts, enabling bulk replay.
+6. **Function-flow tests with `@inngest/test`**: provider error classification is unit-tested; next, cover the orchestration by mocking steps by id (similar to `redux-saga-test-plan`): a failed movie fetch fails Core without invoking `send-email`, `onFailure` emits the `*-failed` event, and Core passes `idempotency_key` to `send-email`.
+7. **HTTP-level mocks + contract smoke test**: the unit tests mock the `resend` module, so the SDK's own error mapping (`statusCode`, `name`), which classification depends on, isn't exercised. Mock at the HTTP layer (MSW) instead, and add an opt-in smoke test against Resend's `delivered@resend.dev` / `bounced@resend.dev` test addresses (these count toward the sending quota; bounces arrive via webhook, see #3).
+8. **DLQ consumer**: a function listening to `*-failed` events that stores and/or alerts, enabling bulk replay.
+9. **Feature modules instead of layer folders**: at this size, grouping by layer (`http/`, `messages/`, `core/`, `providers/`) is fine. As it grows I'd move to vertical slices: a `movies` module (route, `movie.watched` message, the orchestrator, OMDb adapter + `fetch-movie-data`) and a `notifications` module (`email.send` message, Resend adapter, `send-email`). Modules only talk through event contracts, so `movies` depends on `notifications` via `email.send`, never on its code.
 
 ## Recommendation for the exercise
 
